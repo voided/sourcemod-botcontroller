@@ -49,6 +49,8 @@ SMEXT_LINK( &g_BotController );
 
 bool BotController::SDK_OnLoad( char *error, size_t maxlength, bool late )
 {
+	GBotManager().Init();
+
 	g_pShareSys->RegisterLibrary( myself, "botcontroller" );
 
 	extern sp_nativeinfo_t BotController_Natives[];
@@ -57,19 +59,20 @@ bool BotController::SDK_OnLoad( char *error, size_t maxlength, bool late )
 	return true;
 }
 
+void BotController::SDK_OnUnload()
+{
+	GBotManager().Shutdown();
+}
+
 bool BotController::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	GET_V_IFACE_CURRENT( GetServerFactory, botmanager, IBotManager, INTERFACEVERSION_PLAYERBOTMANAGER );
-
-	GBotManager().Init();
 
 	return true;
 }
 
 bool BotController::SDK_OnMetamodUnload(char *error, size_t maxlength)
 {
-	GBotManager().Shutdown();
-
 	return true;
 }
 
