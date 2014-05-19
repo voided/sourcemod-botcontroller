@@ -31,16 +31,16 @@
 
 #include "extension.h"
 
-
 #include "botmanager.h"
-
 #include "bot.h"
+
+// memdbgon must be the last include file in a .cpp file!!!
+#include <tier0/memdbgon.h>
 
 
 IBotManager *botmanager = NULL;
 
 CBotManager g_BotManager;
-
 
 
 void BotManager_GameFrame( bool simulating )
@@ -71,13 +71,10 @@ CBot *CBotManager::CreateBot( const char *botName )
 	if ( !pEdict )
 	{
 		// server is likely full
-
-		Msg( "Unable to CreateBot\n" );
 		return NULL;
 	}
 
 	CBot *pBot = new CBot( pEdict );
-
 	m_Bots.AddToTail( pBot );
 
 	return pBot;
@@ -105,11 +102,11 @@ void CBotManager::OnClientDisconnected( int client )
 
 		CBot *pBot = BotOfEdict( pEdict );
 
-		if ( !pBot )
-			return; // not a bot we're tracking
-
-		m_Bots.FindAndRemove( pBot );
-		delete pBot;
+		if ( pBot )
+		{
+			m_Bots.FindAndRemove( pBot );
+			delete pBot;
+		}
 	}
 }
 

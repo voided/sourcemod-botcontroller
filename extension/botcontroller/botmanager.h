@@ -35,11 +35,10 @@
 
 #include "extension.h"
 
+#include <eiface.h>
+#include <iplayerinfo.h>
 
-#include "eiface.h"
-#include "game/server/iplayerinfo.h"
-
-#include "utlvector.h"
+#include <utlvector.h>
 
 
 extern IBotManager *botmanager;

@@ -31,8 +31,11 @@
 
 
 #include "bot.h"
-
 #include "botmanager.h"
+
+
+// memdbgon must be the last include file in a .cpp file!!!
+#include <tier0/memdbgon.h>
 
 
 

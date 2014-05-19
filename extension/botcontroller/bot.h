@@ -35,8 +35,8 @@
 
 #include "extension.h"
 
-#include "edict.h"
-#include "game/server/iplayerinfo.h"
+#include <edict.h>
+#include <iplayerinfo.h>
 
 
 class CBot
