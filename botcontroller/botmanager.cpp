@@ -52,6 +52,8 @@ void BotManager_GameFrame( bool simulating )
 void CBotManager::Init()
 {
 	g_pSM->AddGameFrameHook( BotManager_GameFrame );
+
+	playerhelpers->AddClientListener( this );
 }
 
 void CBotManager::Shutdown()
@@ -86,4 +88,36 @@ void CBotManager::Think()
 	{
 		m_Bots[ i ]->Think();
 	}
+}
+
+void CBotManager::OnClientDisconnected( int client )
+{
+	IGamePlayer *pPlayer = playerhelpers->GetGamePlayer( client );
+	Assert( pPlayer );
+
+	if ( pPlayer->IsFakeClient() )
+	{
+		edict_t *pEdict = pPlayer->GetEdict();
+
+		if ( !pEdict )
+			return; // well...
+
+		CBot *pBot = BotOfEdict( pEdict );
+
+		if ( !pBot )
+			return; // not a bot we're tracking
+
+		m_Bots.FindAndRemove( pBot );
+	}
+}
+
+CBot *CBotManager::BotOfEdict( edict_t *pEdict )
+{
+	FOR_EACH_VEC( m_Bots, i )
+	{
+		if ( m_Bots[ i ]->GetEdict() == pEdict )
+			return m_Bots[ i ];
+	}
+
+	return NULL;
 }

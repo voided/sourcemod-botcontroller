@@ -33,6 +33,9 @@
 #pragma once
 
 
+#include "extension.h"
+
+
 #include "eiface.h"
 #include "game/server/iplayerinfo.h"
 
@@ -45,6 +48,7 @@ extern IBotManager *botmanager;
 class CBot;
 
 class CBotManager
+	: public IClientListener
 {
 
 public:
@@ -54,6 +58,13 @@ public:
 	CBot *CreateBot( const char *botName );
 
 	void Think();
+
+
+private:
+	// IClientListener
+	void OnClientDisconnected( int client );
+
+	CBot *BotOfEdict( edict_t *pEdict );
 
 
 private:

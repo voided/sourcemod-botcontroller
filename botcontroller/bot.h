@@ -46,6 +46,8 @@ public:
 public:
 	void Think();
 
+	edict_t *GetEdict() const { return m_pEdict; }
+
 
 private:
 	edict_t *m_pEdict;
