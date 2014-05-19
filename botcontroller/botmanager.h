@@ -48,6 +48,9 @@ class CBotManager
 {
 
 public:
+	void Init();
+	void Shutdown();
+
 	CBot *CreateBot( const char *botName );
 
 	void Think();
@@ -58,3 +61,8 @@ private:
 
 };
 
+extern CBotManager g_BotManager;
+inline CBotManager &GBotManager()
+{
+	return g_BotManager;
+}

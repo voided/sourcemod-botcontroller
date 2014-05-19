@@ -51,10 +51,14 @@ bool BotController::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen,
 {
 	GET_V_IFACE_CURRENT( GetServerFactory, botmanager, IBotManager, INTERFACEVERSION_PLAYERBOTMANAGER );
 
+	GBotManager().Init();
+
 	return true;
 }
 
 bool BotController::SDK_OnMetamodUnload(char *error, size_t maxlength)
 {
+	GBotManager().Shutdown();
+
 	return true;
 }

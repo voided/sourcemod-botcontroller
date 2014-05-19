@@ -29,6 +29,9 @@
  * Version: $Id$
  */
 
+#include "extension.h"
+
+
 #include "botmanager.h"
 
 #include "bot.h"
@@ -36,6 +39,25 @@
 
 IBotManager *botmanager = NULL;
 
+CBotManager g_BotManager;
+
+
+
+void BotManager_GameFrame( bool simulating )
+{
+	GBotManager().Think();
+}
+
+
+void CBotManager::Init()
+{
+	g_pSM->AddGameFrameHook( BotManager_GameFrame );
+}
+
+void CBotManager::Shutdown()
+{
+	g_pSM->RemoveGameFrameHook( BotManager_GameFrame );
+}
 
 CBot *CBotManager::CreateBot( const char *botName )
 {
@@ -45,6 +67,8 @@ CBot *CBotManager::CreateBot( const char *botName )
 
 	if ( !pEdict )
 	{
+		// server is likely full
+
 		Msg( "Unable to CreateBot\n" );
 		return NULL;
 	}

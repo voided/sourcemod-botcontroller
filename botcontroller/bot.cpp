@@ -51,5 +51,7 @@ void CBot::Think()
 	CBotCmd botCmd;
 	V_memset( &botCmd, 0, sizeof( botCmd ) );
 
+	// make the server run a usercmd for us
+	// sourcemod will hook this and allow us to change the usercmd from plugin land
 	m_pBotController->RunPlayerMove( &botCmd );
 }
