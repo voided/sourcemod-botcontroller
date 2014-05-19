@@ -66,9 +66,6 @@ private:
 
 	CBot *BotOfEdict( const edict_t *pEdict );
 
-	// IVEngineServer hook
-	const char *GetPlayerNetworkIDString( const edict_t *pEdict );
-
 
 private:
 	CUtlVector<CBot *> m_Bots;
