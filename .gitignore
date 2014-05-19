@@ -19,3 +19,7 @@
 *.exe
 *.out
 *.app
+
+# Build directories
+msvc*/[Rr]elease - *
+msvc*/[Dd]ebug - *

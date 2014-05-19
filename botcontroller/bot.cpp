@@ -30,31 +30,26 @@
  */
 
 
-
-#include "extension.h"
+#include "bot.h"
 
 #include "botmanager.h"
 
 
-/**
- * @file extension.cpp
- * @brief Implement extension code here.
- */
 
-BotController g_BotController;		/**< Global singleton for extension's main interface */
-
-SMEXT_LINK( &g_BotController );
-
-
-
-bool BotController::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen, bool late)
+CBot::CBot( edict_t *pEdict )
+	: m_pEdict( pEdict )
 {
-	GET_V_IFACE_CURRENT( GetServerFactory, botmanager, IBotManager, INTERFACEVERSION_PLAYERBOTMANAGER );
+	Assert( pEdict );
+	Assert( botmanager );
 
-	return true;
+	m_pBotController = botmanager->GetBotController( pEdict );
 }
 
-bool BotController::SDK_OnMetamodUnload(char *error, size_t maxlength)
+
+void CBot::Think()
 {
-	return true;
+	CBotCmd botCmd;
+	V_memset( &botCmd, 0, sizeof( botCmd ) );
+
+	m_pBotController->RunPlayerMove( &botCmd );
 }

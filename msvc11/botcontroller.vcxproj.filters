@@ -16,6 +16,12 @@
     <Filter Include="SourceMod SDK">
       <UniqueIdentifier>{31958233-BB2D-4e41-A8F9-CE8A4684F436}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Bot Controller">
+      <UniqueIdentifier>{fb29b42f-5a7d-4680-a98c-8572be1aa354}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Bot Controller">
+      <UniqueIdentifier>{97fdaf4f-448d-421e-9cb8-c1527c80a5f5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\extension.cpp">
@@ -23,6 +29,12 @@
     </ClCompile>
     <ClCompile Include="..\sdk\smsdk_ext.cpp">
       <Filter>SourceMod SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\botcontroller\bot.cpp">
+      <Filter>Source Files\Bot Controller</Filter>
+    </ClCompile>
+    <ClCompile Include="..\botcontroller\botmanager.cpp">
+      <Filter>Source Files\Bot Controller</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +46,12 @@
     </ClInclude>
     <ClInclude Include="..\sdk\smsdk_ext.h">
       <Filter>SourceMod SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\botcontroller\bot.h">
+      <Filter>Header Files\Bot Controller</Filter>
+    </ClInclude>
+    <ClInclude Include="..\botcontroller\botmanager.h">
+      <Filter>Header Files\Bot Controller</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -30,31 +30,31 @@
  */
 
 
-
-#include "extension.h"
-
-#include "botmanager.h"
+#pragma once
 
 
-/**
- * @file extension.cpp
- * @brief Implement extension code here.
- */
+#include "eiface.h"
+#include "game/server/iplayerinfo.h"
 
-BotController g_BotController;		/**< Global singleton for extension's main interface */
-
-SMEXT_LINK( &g_BotController );
+#include "utlvector.h"
 
 
+extern IBotManager *botmanager;
 
-bool BotController::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen, bool late)
+
+class CBot;
+
+class CBotManager
 {
-	GET_V_IFACE_CURRENT( GetServerFactory, botmanager, IBotManager, INTERFACEVERSION_PLAYERBOTMANAGER );
 
-	return true;
-}
+public:
+	CBot *CreateBot( const char *botName );
 
-bool BotController::SDK_OnMetamodUnload(char *error, size_t maxlength)
-{
-	return true;
-}
+	void Think();
+
+
+private:
+	CUtlVector<CBot *> m_Bots;
+
+};
+

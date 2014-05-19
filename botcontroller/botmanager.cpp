@@ -29,32 +29,37 @@
  * Version: $Id$
  */
 
-
-
-#include "extension.h"
-
 #include "botmanager.h"
 
-
-/**
- * @file extension.cpp
- * @brief Implement extension code here.
- */
-
-BotController g_BotController;		/**< Global singleton for extension's main interface */
-
-SMEXT_LINK( &g_BotController );
+#include "bot.h"
 
 
+IBotManager *botmanager = NULL;
 
-bool BotController::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen, bool late)
+
+CBot *CBotManager::CreateBot( const char *botName )
 {
-	GET_V_IFACE_CURRENT( GetServerFactory, botmanager, IBotManager, INTERFACEVERSION_PLAYERBOTMANAGER );
+	Assert( botmanager );
 
-	return true;
+	edict_t *pEdict = botmanager->CreateBot( botName );
+
+	if ( !pEdict )
+	{
+		Msg( "Unable to CreateBot\n" );
+		return NULL;
+	}
+
+	CBot *pBot = new CBot( pEdict );
+
+	m_Bots.AddToTail( pBot );
+
+	return pBot;
 }
 
-bool BotController::SDK_OnMetamodUnload(char *error, size_t maxlength)
+void CBotManager::Think()
 {
-	return true;
+	FOR_EACH_VEC( m_Bots, i )
+	{
+		m_Bots[ i ]->Think();
+	}
 }
