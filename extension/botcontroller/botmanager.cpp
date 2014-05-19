@@ -58,6 +58,8 @@ void CBotManager::Init()
 
 void CBotManager::Shutdown()
 {
+	playerhelpers->RemoveClientListener( this );
+
 	g_pSM->RemoveGameFrameHook( BotManager_GameFrame );
 }
 
