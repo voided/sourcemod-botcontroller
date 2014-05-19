@@ -61,7 +61,7 @@ public:
 
 private:
 	// IClientListener
-	void OnClientDisconnected( int client );
+	void OnClientDisconnecting( int client );
 
 	CBot *BotOfEdict( const edict_t *pEdict );
 

@@ -88,7 +88,7 @@ void CBotManager::Think()
 	}
 }
 
-void CBotManager::OnClientDisconnected( int client )
+void CBotManager::OnClientDisconnecting( int client )
 {
 	IGamePlayer *pPlayer = playerhelpers->GetGamePlayer( client );
 	Assert( pPlayer );
