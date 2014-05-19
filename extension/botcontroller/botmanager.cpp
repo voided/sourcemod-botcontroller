@@ -108,6 +108,7 @@ void CBotManager::OnClientDisconnected( int client )
 			return; // not a bot we're tracking
 
 		m_Bots.FindAndRemove( pBot );
+		delete pBot;
 	}
 }
 
