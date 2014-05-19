@@ -33,6 +33,8 @@
 #pragma once
 
 
+#include "extension.h"
+
 #include "edict.h"
 #include "game/server/iplayerinfo.h"
 
@@ -47,6 +49,7 @@ public:
 	void Think();
 
 	edict_t *GetEdict() const { return m_pEdict; }
+	int GetIndex() const { return gamehelpers->IndexOfEdict( m_pEdict ); }
 
 
 private:

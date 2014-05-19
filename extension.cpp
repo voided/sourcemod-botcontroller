@@ -34,6 +34,7 @@
 #include "extension.h"
 
 #include "botmanager.h"
+#include "bot.h"
 
 
 /**
@@ -46,6 +47,15 @@ BotController g_BotController;		/**< Global singleton for extension's main inter
 SMEXT_LINK( &g_BotController );
 
 
+bool BotController::SDK_OnLoad( char *error, size_t maxlength, bool late )
+{
+	g_pShareSys->RegisterLibrary( myself, "botcontroller" );
+
+	extern sp_nativeinfo_t BotController_Natives[];
+	g_pShareSys->AddNatives( myself, BotController_Natives );
+
+	return true;
+}
 
 bool BotController::SDK_OnMetamodLoad(ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
@@ -62,3 +72,24 @@ bool BotController::SDK_OnMetamodUnload(char *error, size_t maxlength)
 
 	return true;
 }
+
+static cell_t Native_CreateBot( IPluginContext *pContext, const cell_t *params )
+{
+	char *botName = NULL;
+	pContext->LocalToString( params[ 1 ], &botName );
+
+	CBot *pBot = GBotManager().CreateBot( botName );
+
+	if ( !pBot )
+	{
+		return pContext->ThrowNativeError( "Unable to create bot" );
+	}
+
+	return pBot->GetIndex();
+}
+
+sp_nativeinfo_t BotController_Natives[] =
+{
+	{ "BotController_CreateBot", Native_CreateBot },
+	{ NULL, NULL },
+};
