@@ -41,6 +41,7 @@ IBotManager *botmanager = NULL;
 
 CBotManager g_BotManager;
 
+SH_DECL_HOOK1( IVEngineServer, GetPlayerNetworkIDString, SH_NOATTRIB, 0, const char *, const edict_t * );
 
 
 void BotManager_GameFrame( bool simulating )
@@ -48,16 +49,19 @@ void BotManager_GameFrame( bool simulating )
 	GBotManager().Think();
 }
 
-
 void CBotManager::Init()
 {
 	g_pSM->AddGameFrameHook( BotManager_GameFrame );
 
 	playerhelpers->AddClientListener( this );
+
+	SH_ADD_HOOK( IVEngineServer, GetPlayerNetworkIDString, engine, SH_MEMBER( this, &CBotManager::GetPlayerNetworkIDString ), false );
 }
 
 void CBotManager::Shutdown()
 {
+	SH_REMOVE_HOOK( IVEngineServer, GetPlayerNetworkIDString, engine, SH_MEMBER( this, &CBotManager::GetPlayerNetworkIDString ), false );
+
 	playerhelpers->RemoveClientListener( this );
 
 	g_pSM->RemoveGameFrameHook( BotManager_GameFrame );
@@ -114,7 +118,7 @@ void CBotManager::OnClientDisconnected( int client )
 	}
 }
 
-CBot *CBotManager::BotOfEdict( edict_t *pEdict )
+CBot *CBotManager::BotOfEdict( const edict_t *pEdict )
 {
 	FOR_EACH_VEC( m_Bots, i )
 	{
@@ -123,4 +127,24 @@ CBot *CBotManager::BotOfEdict( edict_t *pEdict )
 	}
 
 	return NULL;
+}
+
+
+const char *CBotManager::GetPlayerNetworkIDString( const edict_t *pEdict )
+{
+	// bots created through IBotManager will not have an auth string assigned
+	// so GetPlayerNetworkIDString will return NULL for these clients
+
+	// sourcemod 1.5 has a wonderful bug where it attempts to dereference this string
+	// so we need to protect it from itself
+
+	const char *networkId = SH_CALL( engine, &IVEngineServer::GetPlayerNetworkIDString )( pEdict );
+
+	if ( networkId == NULL )
+	{
+		// it's.. probably a bot in this case
+		RETURN_META_VALUE( MRES_SUPERCEDE, "BOT" );
+	}
+
+	RETURN_META_VALUE( MRES_IGNORED, "" );
 }

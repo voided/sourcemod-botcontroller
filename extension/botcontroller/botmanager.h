@@ -64,7 +64,10 @@ private:
 	// IClientListener
 	void OnClientDisconnected( int client );
 
-	CBot *BotOfEdict( edict_t *pEdict );
+	CBot *BotOfEdict( const edict_t *pEdict );
+
+	// IVEngineServer hook
+	const char *GetPlayerNetworkIDString( const edict_t *pEdict );
 
 
 private:
