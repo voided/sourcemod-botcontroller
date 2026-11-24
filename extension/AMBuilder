@@ -1,0 +1,33 @@
+import os
+
+sm_public = os.path.join(sm_root, 'public')
+project = builder.LibraryProject('botcontroller.ext')
+project.sources = [
+    'extension.cpp',
+    'botcontroller/bot.cpp',
+    'botcontroller/botmanager.cpp',
+    os.path.join(sm_public, 'smsdk_ext.cpp'),
+]
+engine_defines = [f"SE_{sdk['define']}={sdk['code']}" for sdk in SdkHelpers.sdk_manifests]
+
+for target in SdkHelpers.sdk_targets:
+    sdk = target.sdk
+    name = f"{project.name}.{sdk['extension']}"
+    binary = project.Configure(target.cxx, name, f"{sdk['name']} {target.cxx.target.arch}")
+    compiler = binary.compiler
+    compiler.defines += engine_defines
+    SdkHelpers.configureCxx(builder, binary, sdk)
+    compiler.cxxincludes += [
+        builder.currentSourcePath,
+        os.path.join(builder.currentSourcePath, 'botcontroller'),
+        os.path.join(builder.currentSourcePath, 'sdk'),
+        sm_public,
+        os.path.join(sm_public, 'extensions'),
+        os.path.join(sm_public, 'amtl'),
+        os.path.join(sm_public, 'amtl', 'amtl'),
+        os.path.join(sm_root, 'sourcepawn', 'include'),
+        os.path.join(mms_root, 'core'),
+        os.path.join(mms_root, 'core', 'sourcehook'),
+    ]
+
+rvalue = builder.Add(project)
