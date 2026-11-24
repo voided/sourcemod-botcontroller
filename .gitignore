@@ -20,6 +20,6 @@
 *.out
 *.app
 
-# Build directories
-*/msvc*/[Rr]elease - *
-*/msvc*/[Dd]ebug - *
+# AMBuild output
+/build/
+__pycache__/

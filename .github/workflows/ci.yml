@@ -1,0 +1,96 @@
+name: Extension builder
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: sm${{ matrix.sm.label }}-${{ matrix.target.os_name }} (x86)
+    runs-on: ${{ matrix.target.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sm:
+          - label: '1.12'
+            branch: 1.12-dev
+          - label: '1.13'
+            branch: master
+        target:
+          - os_name: linux
+            runner: ubuntu-22.04
+            extension: so
+          - os_name: windows
+            runner: windows-2022
+            extension: dll
+
+    env:
+      SDKS: tf2
+      SM_BRANCH: ${{ matrix.sm.branch }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.15'
+
+      - name: Install Linux toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang g++-multilib
+          echo 'CC=clang' >> "$GITHUB_ENV"
+          echo 'CXX=clang++' >> "$GITHUB_ENV"
+
+      - name: Fetch public build dependencies
+        run: |
+          HL2SDK_ROOT="$RUNNER_TEMP/botcontroller-deps"
+          echo "HL2SDK_ROOT=$HL2SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$HL2SDK_ROOT"
+          git clone --depth 1 https://github.com/alliedmodders/ambuild "$HL2SDK_ROOT/ambuild"
+          git clone --depth 1 --branch 1.12-dev https://github.com/alliedmodders/metamod-source "$HL2SDK_ROOT/metamod-source"
+          git clone --depth 1 --branch "$SM_BRANCH" https://github.com/alliedmodders/sourcemod "$HL2SDK_ROOT/sourcemod"
+          git -C "$HL2SDK_ROOT/sourcemod" submodule update --init --depth 1 -- \
+            hl2sdk-manifests public/amtl sourcepawn
+          for sdk in $SDKS; do
+            git clone --depth 1 --branch "$sdk" https://github.com/alliedmodders/hl2sdk "$HL2SDK_ROOT/hl2sdk-$sdk"
+          done
+          python -m pip install "$HL2SDK_ROOT/ambuild"
+
+      - name: Build and package
+        run: |
+          mkdir build
+          cd build
+          python ../configure.py --enable-optimize \
+            --hl2sdk-root="$HL2SDK_ROOT" --mms-path="$HL2SDK_ROOT/metamod-source" \
+            --sm-path="$HL2SDK_ROOT/sourcemod"
+          ambuild
+
+      - name: Verify package
+        working-directory: build/package
+        env:
+          EXTENSION: ${{ matrix.target.extension }}
+        run: |
+          for sdk in $SDKS; do
+            test -s "addons/sourcemod/extensions/botcontroller.ext.2.$sdk.$EXTENSION"
+          done
+          test -s addons/sourcemod/scripting/include/botcontroller.inc
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: botcontroller-sm${{ matrix.sm.label }}-${{ matrix.target.os_name }}
+          path: build/package/
+          if-no-files-found: error

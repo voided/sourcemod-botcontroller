@@ -1,0 +1,54 @@
+import os
+
+SUPPORTED_SDKS = ('tf2',)
+sm_root = os.path.abspath(builder.options.sm_path)
+mms_root = os.path.abspath(builder.options.mms_path)
+sdk_root = os.path.abspath(builder.options.hl2sdk_root)
+
+cxx = builder.DetectCxx(target_arch='x86')
+if cxx.target.platform not in ('linux', 'windows'):
+    raise ValueError('BotController supports Linux and Windows.')
+
+cxx.defines += ['HAVE_STRING_H']
+if builder.options.enable_optimize:
+    cxx.defines += ['NDEBUG']
+
+if cxx.like('gcc'):
+    cxx.defines += ['HAVE_STDINT_H', 'typeof=__typeof__', '_FILE_OFFSET_BITS=64']
+    cxx.cflags += ['-pipe', '-fPIC', '-fvisibility=hidden', '-fno-strict-aliasing']
+    cxx.cxxflags += ['-std=c++17', '-fvisibility-inlines-hidden', '-Wno-register']
+    cxx.linkflags += ['-Wl,--exclude-libs,ALL', '-static-libstdc++']
+    if cxx.family == 'clang':
+        cxx.linkflags += ['-lgcc_eh']
+    else:
+        cxx.linkflags += ['-static-libgcc']
+    if builder.options.enable_optimize:
+        cxx.cflags += ['-O2']
+else:
+    cxx.defines += ['_WINDOWS', '_CRT_SECURE_NO_WARNINGS', '_ITERATOR_DEBUG_LEVEL=0']
+    cxx.cflags += ['/W3', '/MT']
+    cxx.cxxflags += ['/EHsc', '/std:c++17']
+    if builder.options.enable_optimize:
+        cxx.cflags += ['/O2']
+
+
+def find_sdk_path(name):
+    path = os.path.join(sdk_root, 'hl2sdk-' + name)
+    return path if os.path.isdir(path) else None
+
+
+manifest_helper = os.path.join(sm_root, 'hl2sdk-manifests', 'SdkHelpers.ambuild')
+if not os.path.isfile(manifest_helper):
+    raise FileNotFoundError("Initialize SourceMod's hl2sdk-manifests submodule.")
+
+SdkHelpers = builder.Eval(manifest_helper, {'Project': 'sm-extension'})
+SdkHelpers.sdk_filter = lambda sdk: sdk['name'] in SUPPORTED_SDKS
+SdkHelpers.find_sdk_path = find_sdk_path
+SdkHelpers.findSdks(builder, [cxx], list(SUPPORTED_SDKS))
+
+extensions = builder.Build('extension/AMBuilder', {
+    'SdkHelpers': SdkHelpers,
+    'sm_root': sm_root,
+    'mms_root': mms_root,
+})
+builder.Build('buildbot/PackageScript', {'extensions': extensions})

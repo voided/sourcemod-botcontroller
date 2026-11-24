@@ -1,0 +1,11 @@
+import os
+
+builder.SetBuildFolder('package')
+sourcemod = os.path.join('addons', 'sourcemod')
+extension_dir = builder.AddFolder(os.path.join(sourcemod, 'extensions'))
+include_dir = builder.AddFolder(os.path.join(sourcemod, 'scripting', 'include'))
+
+for extension in extensions:
+    builder.AddCopy(extension.binary, extension_dir)
+
+builder.AddCopy(os.path.join(builder.sourcePath, 'scripting', 'botcontroller.inc'), include_dir)
