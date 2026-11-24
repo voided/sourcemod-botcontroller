@@ -16,6 +16,11 @@ for target in SdkHelpers.sdk_targets:
     binary = project.Configure(target.cxx, name, f"{sdk['name']} {target.cxx.target.arch}")
     compiler = binary.compiler
     compiler.defines += engine_defines
+    if sdk['name'] == 'csgo':
+        compiler.defines += ['NETWORK_VARS_ENABLED']
+    if compiler.target.platform == 'linux' and sdk['name'] in ('l4d', 'csgo'):
+        compiler.defines += ['stricmp=strcasecmp', '_stricmp=strcasecmp',
+                             '_snprintf=snprintf', '_vsnprintf=vsnprintf']
     SdkHelpers.configureCxx(builder, binary, sdk)
     compiler.cxxincludes += [
         builder.currentSourcePath,

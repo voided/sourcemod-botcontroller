@@ -31,7 +31,7 @@ jobs:
             extension: dll
 
     env:
-      SDKS: tf2
+      SDKS: tf2 css dods hl2dm sdk2013 l4d l4d2 csgo
       SM_BRANCH: ${{ matrix.sm.branch }}
 
     defaults:
@@ -74,7 +74,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          python ../configure.py --enable-optimize \
+          python ../configure.py --enable-optimize --sdks=all \
             --hl2sdk-root="$HL2SDK_ROOT" --mms-path="$HL2SDK_ROOT/metamod-source" \
             --sm-path="$HL2SDK_ROOT/sourcemod"
           ambuild

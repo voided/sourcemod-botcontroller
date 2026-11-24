@@ -1,6 +1,6 @@
 import os
 
-SUPPORTED_SDKS = ('tf2',)
+SUPPORTED_SDKS = ('tf2', 'css', 'dods', 'hl2dm', 'sdk2013', 'l4d', 'l4d2', 'csgo')
 sm_root = os.path.abspath(builder.options.sm_path)
 mms_root = os.path.abspath(builder.options.mms_path)
 sdk_root = os.path.abspath(builder.options.hl2sdk_root)
@@ -44,7 +44,11 @@ if not os.path.isfile(manifest_helper):
 SdkHelpers = builder.Eval(manifest_helper, {'Project': 'sm-extension'})
 SdkHelpers.sdk_filter = lambda sdk: sdk['name'] in SUPPORTED_SDKS
 SdkHelpers.find_sdk_path = find_sdk_path
-SdkHelpers.findSdks(builder, [cxx], list(SUPPORTED_SDKS))
+sdk_selection = builder.options.sdks.split()
+if not sdk_selection or (set(sdk_selection) - set(SUPPORTED_SDKS) and
+                         sdk_selection not in (['all'], ['present'])):
+    raise ValueError(f"Specify 'all', 'present', or SDKs from: {', '.join(SUPPORTED_SDKS)}")
+SdkHelpers.findSdks(builder, [cxx], sdk_selection)
 
 extensions = builder.Build('extension/AMBuilder', {
     'SdkHelpers': SdkHelpers,
