@@ -1,15 +1,19 @@
 
-#if defined __botcontroller_included
+#if defined _botcontroller_included
 	#endinput
 #endif
 
-#define __botcontroller_included
+#define _botcontroller_included
 
+/**
+ * Creates a fake client and returns its client index.
+ *
+ * The bot receives an empty user command every game frame. SourcePawn hooks
+ * may change that command to provide movement and actions.
+ */
+native int BotController_CreateBot(const char[] botName);
 
-native BotController_CreateBot( const String:botName[] );
-
-
-public Extension:__ext_botcontroller =
+public Extension __ext_botcontroller =
 {
 	name = "BotController",
 	file = "botcontroller.ext",
@@ -30,7 +34,7 @@ public Extension:__ext_botcontroller =
 
 
 #if !defined REQUIRE_EXTENSIONS
-public __ext_botcontroller_SetNTVOptional()
+public void __ext_botcontroller_SetNTVOptional()
 {
-	MarkNativeAsOptional( "BotController_CreateBot" );
+	MarkNativeAsOptional("BotController_CreateBot");
 }

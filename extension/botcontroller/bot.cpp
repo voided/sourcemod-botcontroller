@@ -51,8 +51,11 @@ CBot::CBot( edict_t *pEdict )
 
 void CBot::Think()
 {
+	if (!m_pBotController)
+		return;
+
 	// The SDK constructor resets every command field and preserves the vtable.
-	CBotCmd botCmd;
+	CBotCmd botCmd{};
 
 	// make the server run a usercmd for us
 	// sourcemod will hook this and allow us to change the usercmd from plugin land

@@ -38,7 +38,8 @@
 #include <eiface.h>
 #include <iplayerinfo.h>
 
-#include <utlvector.h>
+#include <memory>
+#include <vector>
 
 
 extern IBotManager *botmanager;
@@ -46,8 +47,7 @@ extern IBotManager *botmanager;
 
 class CBot;
 
-class CBotManager
-	: public IClientListener
+class CBotManager final : public IClientListener
 {
 
 public:
@@ -61,13 +61,10 @@ public:
 
 private:
 	// IClientListener
-	void OnClientDisconnecting( int client );
-
-	CBot *BotOfEdict( const edict_t *pEdict );
-
+	void OnClientDisconnecting(int client) override;
 
 private:
-	CUtlVector<CBot *> m_Bots;
+	std::vector<std::unique_ptr<CBot>> bots_;
 
 };
 

@@ -34,89 +34,77 @@
 #include "botmanager.h"
 #include "bot.h"
 
-// memdbgon must be the last include file in a .cpp file!!!
-#include <tier0/memdbgon.h>
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
 
 
-IBotManager *botmanager = NULL;
+IBotManager *botmanager = nullptr;
 
 CBotManager g_BotManager;
 
 
-void BotManager_GameFrame( bool simulating )
+void BotManager_GameFrame(bool)
 {
 	GBotManager().Think();
 }
 
 void CBotManager::Init()
 {
-	g_pSM->AddGameFrameHook( BotManager_GameFrame );
-
-	playerhelpers->AddClientListener( this );
+	g_pSM->AddGameFrameHook(BotManager_GameFrame);
+	playerhelpers->AddClientListener(this);
 }
 
 void CBotManager::Shutdown()
 {
-	playerhelpers->RemoveClientListener( this );
-
-	g_pSM->RemoveGameFrameHook( BotManager_GameFrame );
+	playerhelpers->RemoveClientListener(this);
+	g_pSM->RemoveGameFrameHook(BotManager_GameFrame);
+	bots_.clear();
 }
 
 CBot *CBotManager::CreateBot( const char *botName )
 {
-	Assert( botmanager );
+	if (!botmanager)
+		return nullptr;
 
-	edict_t *pEdict = botmanager->CreateBot( botName );
+	edict_t *pEdict = botmanager->CreateBot(botName);
 
-	if ( !pEdict )
+	if (!pEdict)
 	{
-		// server is likely full
-		return NULL;
+		return nullptr;
 	}
 
-	CBot *pBot = new CBot( pEdict );
-	m_Bots.AddToTail( pBot );
-
-	return pBot;
+	auto bot = std::make_unique<CBot>(pEdict);
+	CBot *result = bot.get();
+	bots_.push_back(std::move(bot));
+	return result;
 }
 
 void CBotManager::Think()
 {
-	FOR_EACH_VEC( m_Bots, i )
-	{
-		m_Bots[ i ]->Think();
-	}
+	// RunPlayerMove can invoke plugin callbacks that modify the bot collection.
+	// Keep the index-based iteration used by the original manager.
+	for (std::size_t i = 0; i < bots_.size(); ++i)
+		bots_[i]->Think();
 }
 
 void CBotManager::OnClientDisconnecting( int client )
 {
-	IGamePlayer *pPlayer = playerhelpers->GetGamePlayer( client );
-	Assert( pPlayer );
+	IGamePlayer *pPlayer = playerhelpers->GetGamePlayer(client);
 
-	if ( pPlayer->IsFakeClient() )
+	if (!pPlayer || !pPlayer->IsFakeClient())
+		return;
+
+	edict_t *pEdict = pPlayer->GetEdict();
+	if (!pEdict)
+		return;
+
+	auto bot = std::find_if(bots_.begin(), bots_.end(), [pEdict](const auto &candidate) {
+		return candidate->GetEdict() == pEdict;
+	});
+	if (bot != bots_.end())
 	{
-		edict_t *pEdict = pPlayer->GetEdict();
-
-		if ( !pEdict )
-			return; // well...
-
-		CBot *pBot = BotOfEdict( pEdict );
-
-		if ( pBot )
-		{
-			m_Bots.FindAndRemove( pBot );
-			delete pBot;
-		}
+		bots_.erase(bot);
 	}
-}
-
-CBot *CBotManager::BotOfEdict( const edict_t *pEdict )
-{
-	FOR_EACH_VEC( m_Bots, i )
-	{
-		if ( m_Bots[ i ]->GetEdict() == pEdict )
-			return m_Bots[ i ];
-	}
-
-	return NULL;
 }
