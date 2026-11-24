@@ -1,35 +1,51 @@
 import os
 
-SUPPORTED_SDKS = ('tf2', 'css', 'dods', 'hl2dm', 'sdk2013', 'l4d', 'l4d2', 'csgo')
+X64_SDKS = ('tf2', 'css', 'dods', 'hl2dm')
+SUPPORTED_SDKS = X64_SDKS + ('sdk2013', 'l4d', 'l4d2', 'csgo')
+ARCHITECTURES = ('x86', 'x86_64')
 sm_root = os.path.abspath(builder.options.sm_path)
 mms_root = os.path.abspath(builder.options.mms_path)
 sdk_root = os.path.abspath(builder.options.hl2sdk_root)
 
-cxx = builder.DetectCxx(target_arch='x86')
-if cxx.target.platform not in ('linux', 'windows'):
-    raise ValueError('BotController supports Linux and Windows.')
 
-cxx.defines += ['HAVE_STRING_H']
-if builder.options.enable_optimize:
-    cxx.defines += ['NDEBUG']
+def configure_compiler(cxx):
+    if cxx.target.platform not in ('linux', 'windows'):
+        raise ValueError('BotController supports Linux and Windows.')
 
-if cxx.like('gcc'):
-    cxx.defines += ['HAVE_STDINT_H', 'typeof=__typeof__', '_FILE_OFFSET_BITS=64']
-    cxx.cflags += ['-pipe', '-fPIC', '-fvisibility=hidden', '-fno-strict-aliasing']
-    cxx.cxxflags += ['-std=c++17', '-fvisibility-inlines-hidden', '-Wno-register']
-    cxx.linkflags += ['-Wl,--exclude-libs,ALL', '-static-libstdc++']
-    if cxx.family == 'clang':
-        cxx.linkflags += ['-lgcc_eh']
+    cxx.defines += ['HAVE_STRING_H']
+    if builder.options.enable_optimize:
+        cxx.defines += ['NDEBUG']
+
+    if cxx.like('gcc'):
+        cxx.defines += ['HAVE_STDINT_H', 'typeof=__typeof__', '_FILE_OFFSET_BITS=64']
+        cxx.cflags += ['-pipe', '-fPIC', '-fvisibility=hidden', '-fno-strict-aliasing']
+        cxx.cxxflags += ['-std=c++17', '-fvisibility-inlines-hidden', '-Wno-register']
+        cxx.linkflags += ['-Wl,--exclude-libs,ALL', '-static-libstdc++']
+        if cxx.family == 'clang':
+            cxx.linkflags += ['-lgcc_eh']
+        else:
+            cxx.linkflags += ['-static-libgcc']
+        if builder.options.enable_optimize:
+            cxx.cflags += ['-O2']
     else:
-        cxx.linkflags += ['-static-libgcc']
-    if builder.options.enable_optimize:
-        cxx.cflags += ['-O2']
-else:
-    cxx.defines += ['_WINDOWS', '_CRT_SECURE_NO_WARNINGS', '_ITERATOR_DEBUG_LEVEL=0']
-    cxx.cflags += ['/W3', '/MT']
-    cxx.cxxflags += ['/EHsc', '/std:c++17']
-    if builder.options.enable_optimize:
-        cxx.cflags += ['/O2']
+        cxx.defines += ['_WINDOWS', '_CRT_SECURE_NO_WARNINGS', '_ITERATOR_DEBUG_LEVEL=0']
+        cxx.cflags += ['/W3', '/MT']
+        cxx.cxxflags += ['/EHsc', '/std:c++17']
+        if builder.options.enable_optimize:
+            cxx.cflags += ['/O2']
+
+
+def filter_sdk(sdk):
+    name = sdk['name']
+    if name not in SUPPORTED_SDKS:
+        return False
+    # CS:GO also has an x64 Linux listen-server SDK, outside the dedicated server targets.
+    architectures = ARCHITECTURES if name in X64_SDKS else ('x86',)
+    sdk['platforms'] = {
+        platform: [arch for arch in architectures if arch in sdk['platforms'].get(platform, ())]
+        for platform in ('linux', 'windows')
+    }
+    return True
 
 
 def find_sdk_path(name):
@@ -42,13 +58,21 @@ if not os.path.isfile(manifest_helper):
     raise FileNotFoundError("Initialize SourceMod's hl2sdk-manifests submodule.")
 
 SdkHelpers = builder.Eval(manifest_helper, {'Project': 'sm-extension'})
-SdkHelpers.sdk_filter = lambda sdk: sdk['name'] in SUPPORTED_SDKS
+SdkHelpers.sdk_filter = filter_sdk
 SdkHelpers.find_sdk_path = find_sdk_path
 sdk_selection = builder.options.sdks.split()
 if not sdk_selection or (set(sdk_selection) - set(SUPPORTED_SDKS) and
                          sdk_selection not in (['all'], ['present'])):
     raise ValueError(f"Specify 'all', 'present', or SDKs from: {', '.join(SUPPORTED_SDKS)}")
-SdkHelpers.findSdks(builder, [cxx], sdk_selection)
+architectures = builder.options.targets.split(',')
+if (set(architectures) - set(ARCHITECTURES) or
+        len(architectures) != len(set(architectures))):
+    raise ValueError('Specify x86, x86_64, or x86,x86_64.')
+
+compilers = [builder.DetectCxx(target_arch=arch) for arch in architectures]
+for cxx in compilers:
+    configure_compiler(cxx)
+SdkHelpers.findSdks(builder, compilers, sdk_selection)
 
 extensions = builder.Build('extension/AMBuilder', {
     'SdkHelpers': SdkHelpers,
