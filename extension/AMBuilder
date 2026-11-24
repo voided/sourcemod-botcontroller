@@ -8,6 +8,9 @@ project.sources = [
     'botcontroller/botmanager.cpp',
     os.path.join(sm_public, 'smsdk_ext.cpp'),
 ]
+version_header = builder.AddOutputFile('botcontroller_version.h', f'''#pragma once
+#define BOTCONTROLLER_VERSION "{version}"
+'''.encode('utf-8'))
 engine_defines = [f"SE_{sdk['define']}={sdk['code']}" for sdk in SdkHelpers.sdk_manifests]
 
 for target in SdkHelpers.sdk_targets:
@@ -16,6 +19,7 @@ for target in SdkHelpers.sdk_targets:
     binary = project.Configure(target.cxx, name, f"{sdk['name']} {target.cxx.target.arch}")
     compiler = binary.compiler
     compiler.defines += engine_defines
+    compiler.sourcedeps += [version_header]
     if sdk['name'] == 'csgo':
         compiler.defines += ['NETWORK_VARS_ENABLED']
     if compiler.target.platform == 'linux' and sdk['name'] in ('l4d', 'csgo'):
@@ -24,6 +28,7 @@ for target in SdkHelpers.sdk_targets:
     SdkHelpers.configureCxx(builder, binary, sdk)
     compiler.cxxincludes += [
         builder.currentSourcePath,
+        os.path.join(builder.buildPath, builder.buildFolder),
         os.path.join(builder.currentSourcePath, 'botcontroller'),
         os.path.join(builder.currentSourcePath, 'sdk'),
         sm_public,

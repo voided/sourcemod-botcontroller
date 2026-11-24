@@ -17,7 +17,10 @@ SourceMod extension for bot controller.
 | Counter-Strike: Global Offensive (legacy dedicated server, `csgo`) | x86 | x86 |
 
 The GitHub Actions workflow produces separate Linux and Windows packages
-for SourceMod 1.12 (`1.12-dev`) and 1.13 (`master`). Download the package for
+for SourceMod 1.12 (`1.12-dev`) and 1.13 (`master`). After all builds pass on a
+push to `master`, GitHub Releases publishes four archives (Linux `.tar.gz` and
+Windows `.zip` for each SourceMod version) tagged `v<product.version>.<commit count>`.
+The extension reports the same version as its release. Download the package for
 both your SourceMod version and server OS, then merge its `addons/` directory
 with your game directory. Packages include the x86 extensions in
 `addons/sourcemod/extensions/`, the x64 extensions in
@@ -44,5 +47,7 @@ Use `--sdks="tf2 css"` to select particular engines or `--sdks=present` to
 build those installed locally.
 Use `--targets=x86` or `--targets=x86_64` for a single server architecture.
 On Linux, building both architectures requires the multilib toolchain.
+Use `--version MAJOR.MINOR.PATCH[.BUILD]` to set the version reported by the
+extension, which defaults to `product.version`.
 The packaged engine-specific extensions and SourcePawn include are in
 `build/package/`.

@@ -11,7 +11,29 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Compute version
+        id: compute
+        run: |
+          base_version=$(cat product.version)
+          if [[ ! "$base_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::product.version must contain a three-part numeric version."
+            exit 1
+          fi
+          echo "version=$base_version.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: version
     name: sm${{ matrix.sm.label }}-${{ matrix.target.os_name }} (x86 and x64)
     runs-on: ${{ matrix.target.runner }}
     strategy:
@@ -33,6 +55,7 @@ jobs:
     env:
       X86_SDKS: tf2 css dods hl2dm sdk2013 l4d l4d2 csgo
       X64_SDKS: tf2 css dods hl2dm
+      VERSION: ${{ needs.version.outputs.version }}
       SM_BRANCH: ${{ matrix.sm.branch }}
 
     defaults:
@@ -75,7 +98,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          python ../configure.py --enable-optimize --sdks=all --targets=x86,x86_64 \
+          python ../configure.py --version="$VERSION" --enable-optimize --sdks=all --targets=x86,x86_64 \
             --hl2sdk-root="$HL2SDK_ROOT" --mms-path="$HL2SDK_ROOT/metamod-source" \
             --sm-path="$HL2SDK_ROOT/sourcemod"
           ambuild
@@ -95,6 +118,95 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: botcontroller-sm${{ matrix.sm.label }}-${{ matrix.target.os_name }}
+          name: botcontroller-${{ env.VERSION }}-sm${{ matrix.sm.label }}-${{ matrix.target.os_name }}
           path: build/package/
           if-no-files-found: error
+          overwrite: true
+
+  release:
+    name: Release
+    needs: [version, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    concurrency:
+      group: release-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download build packages
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          pattern: botcontroller-${{ env.VERSION }}-*
+
+      - name: Assemble release archives
+        run: |
+          mkdir assets
+          for sm in 1.12 1.13; do
+            package="botcontroller-$VERSION-sm$sm"
+            linux="artifacts/$package-linux"
+            windows="artifacts/$package-windows"
+            if [[ ! -d "$linux/addons" || ! -d "$windows/addons" ]]; then
+              echo "::error::Missing Linux or Windows package for SourceMod $sm."
+              exit 1
+            fi
+
+            tar -czf "assets/$package-linux.tar.gz" -C "$linux" addons
+            (cd "$windows" && python3 -m zipfile -c \
+              "$GITHUB_WORKSPACE/assets/$package-windows.zip" addons)
+          done
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          assets=()
+          for sm in 1.12 1.13; do
+            assets+=("assets/botcontroller-$VERSION-sm$sm-linux.tar.gz"
+                    "assets/botcontroller-$VERSION-sm$sm-windows.zip")
+          done
+          expected_names=$(jq -n --args '$ARGS.positional' "${assets[@]##*/}")
+
+          tagged_commit=$(git rev-parse --verify --quiet "refs/tags/$tag^{commit}" || true)
+          if [[ -n "$tagged_commit" && "$tagged_commit" != "$GITHUB_SHA" ]]; then
+            echo "::error::$tag already points to a different commit."
+            exit 1
+          fi
+
+          # A rerun can reuse a complete release for the same commit.
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,assets > release.json 2>/dev/null; then
+            if [[ "$tagged_commit" == "$GITHUB_SHA" ]] && jq -e --argjson expected "$expected_names" \
+              '.isDraft == false and (($expected - [.assets[].name]) | length == 0)' \
+              release.json > /dev/null; then
+              echo "Release $tag already has all archives."
+              exit 0
+            fi
+            echo "::error::Release $tag exists but is not a complete release for this commit."
+            exit 1
+          fi
+
+          # The Actions token cannot create a tag with workflow files that differ from master.
+          if [[ -z "$tagged_commit" ]]; then
+            git fetch --no-tags origin "$GITHUB_REF"
+            if ! git diff --quiet "$GITHUB_SHA" FETCH_HEAD -- .github/workflows/; then
+              echo "::notice::Skipping $tag because the workflow files on master have changed."
+              exit 0
+            fi
+          fi
+
+          gh release create "$tag" "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "BotController $VERSION" \
+            --notes "Automated release built from $GITHUB_SHA. Download the package matching your SourceMod version and server OS."

@@ -37,10 +37,12 @@
  * @brief Contains macros for configuring basic extension information.
  */
 
+#include "botcontroller_version.h"
+
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"BotController"
 #define SMEXT_CONF_DESCRIPTION	"BotController"
-#define SMEXT_CONF_VERSION		"0.1"
+#define SMEXT_CONF_VERSION		BOTCONTROLLER_VERSION
 #define SMEXT_CONF_AUTHOR		"VoiDeD"
 #define SMEXT_CONF_URL			"http://saxtonhell.com"
 #define SMEXT_CONF_LOGTAG		"BOTCONTROL"

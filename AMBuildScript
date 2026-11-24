@@ -1,4 +1,5 @@
 import os
+import re
 
 X64_SDKS = ('tf2', 'css', 'dods', 'hl2dm')
 SUPPORTED_SDKS = X64_SDKS + ('sdk2013', 'l4d', 'l4d2', 'csgo')
@@ -6,6 +7,14 @@ ARCHITECTURES = ('x86', 'x86_64')
 sm_root = os.path.abspath(builder.options.sm_path)
 mms_root = os.path.abspath(builder.options.mms_path)
 sdk_root = os.path.abspath(builder.options.hl2sdk_root)
+
+version_file = os.path.join(builder.sourcePath, 'product.version')
+builder.AddConfigureFile(version_file)
+with open(version_file, encoding='utf-8') as file:
+    base_version = file.read().strip()
+if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', base_version):
+    raise ValueError('product.version must contain a three-part numeric version.')
+version = builder.options.version or base_version
 
 
 def configure_compiler(cxx):
@@ -78,5 +87,6 @@ extensions = builder.Build('extension/AMBuilder', {
     'SdkHelpers': SdkHelpers,
     'sm_root': sm_root,
     'mms_root': mms_root,
+    'version': version,
 })
 builder.Build('buildbot/PackageScript', {'extensions': extensions})
