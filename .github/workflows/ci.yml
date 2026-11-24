@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: sm${{ matrix.sm.label }}-${{ matrix.target.os_name }} (x86)
+    name: sm${{ matrix.sm.label }}-${{ matrix.target.os_name }} (x86 and x64)
     runs-on: ${{ matrix.target.runner }}
     strategy:
       fail-fast: false
@@ -31,7 +31,8 @@ jobs:
             extension: dll
 
     env:
-      SDKS: tf2 css dods hl2dm sdk2013 l4d l4d2 csgo
+      X86_SDKS: tf2 css dods hl2dm sdk2013 l4d l4d2 csgo
+      X64_SDKS: tf2 css dods hl2dm
       SM_BRANCH: ${{ matrix.sm.branch }}
 
     defaults:
@@ -65,7 +66,7 @@ jobs:
           git clone --depth 1 --branch "$SM_BRANCH" https://github.com/alliedmodders/sourcemod "$HL2SDK_ROOT/sourcemod"
           git -C "$HL2SDK_ROOT/sourcemod" submodule update --init --depth 1 -- \
             hl2sdk-manifests public/amtl sourcepawn
-          for sdk in $SDKS; do
+          for sdk in $X86_SDKS; do
             git clone --depth 1 --branch "$sdk" https://github.com/alliedmodders/hl2sdk "$HL2SDK_ROOT/hl2sdk-$sdk"
           done
           python -m pip install "$HL2SDK_ROOT/ambuild"
@@ -74,7 +75,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          python ../configure.py --enable-optimize --sdks=all \
+          python ../configure.py --enable-optimize --sdks=all --targets=x86,x86_64 \
             --hl2sdk-root="$HL2SDK_ROOT" --mms-path="$HL2SDK_ROOT/metamod-source" \
             --sm-path="$HL2SDK_ROOT/sourcemod"
           ambuild
@@ -84,8 +85,11 @@ jobs:
         env:
           EXTENSION: ${{ matrix.target.extension }}
         run: |
-          for sdk in $SDKS; do
+          for sdk in $X86_SDKS; do
             test -s "addons/sourcemod/extensions/botcontroller.ext.2.$sdk.$EXTENSION"
+          done
+          for sdk in $X64_SDKS; do
+            test -s "addons/sourcemod/extensions/x64/botcontroller.ext.2.$sdk.$EXTENSION"
           done
           test -s addons/sourcemod/scripting/include/botcontroller.inc
 
